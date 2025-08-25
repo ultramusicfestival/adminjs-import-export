@@ -7,6 +7,7 @@ import {
   BaseResource,
   Filter,
   ValidationError,
+  populateProperty,
 } from 'adminjs';
 
 import { csvImporter } from './modules/csv/csv.importer.js';
@@ -74,11 +75,28 @@ export const getRecords = async (
     ?.name?.();
   const titleProperty = context.resource.decorate().titleProperty()?.name?.();
 
-  return context.resource.find(new Filter({}, context.resource), {
+  // Fetch all records
+  let records = await context.resource.find(new Filter({}, context.resource), {
     limit: Number.MAX_SAFE_INTEGER,
     sort: {
       sortBy: idProperty ?? titleProperty,
       direction: 'asc',
     },
   });
+
+  // Find all reference properties that need to be populated
+  const decoratedResource = context.resource.decorate();
+  const referenceProperties = Object.values(
+    decoratedResource.properties
+  ).filter(property => property.reference());
+
+  // Populate each reference property
+  for (const property of referenceProperties) {
+    const populatedRecords = await populateProperty(records, property, context);
+    if (populatedRecords) {
+      records = populatedRecords;
+    }
+  }
+
+  return records;
 };
