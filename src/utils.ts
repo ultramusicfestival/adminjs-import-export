@@ -98,5 +98,21 @@ export const getRecords = async (
     }
   }
 
+  // Extract title fields from populated related records and add them to record params
+  records.forEach(record => {
+    referenceProperties.forEach(property => {
+      const propertyPath = property.propertyPath;
+      const populatedRecord = record.populated[propertyPath];
+
+      if (populatedRecord) {
+        // Get the title of the related record
+        const relatedTitle = populatedRecord.title();
+        // Add the title as a new field in the record params
+        const titleFieldName = `${propertyPath}_title`;
+        record.set(titleFieldName, relatedTitle);
+      }
+    });
+  });
+
   return records;
 };
